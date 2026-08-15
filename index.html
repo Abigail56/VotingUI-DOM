@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Voting System</title>
+
+  <!---Font Awesome--->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-green-400 p-7">
+
+  <div class="max-w-6xl mx-auto p-6">
+
+    <!-- Header -->
+    <h1 class="text-4xl font-bold text-center text-gray-800">
+      ONLINE VOTING SYSTEM
+    </h1>
+
+    <p class="text-xl font-bold text-center text-gray-800 mt-2">
+      VOTE FOR YOUR PREFERRED CANDIDATE AND SEE THE LIVE RESULT
+    </p>
+
+    <!-- ================================================= -->
+    <!-- TOP: Voter Information (name + email + candidate)  -->
+    <!-- ================================================= -->
+    <section class="mt-10 bg-white p-6 rounded-xl shadow">
+      <h2 class="text-2xl font-bold mb-5">VOTER INFORMATION</h2>
+
+      <form id="voteForm" onsubmit="handleSubmit(event)">
+        <div class="grid sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block mb-2 font-semibold">Full Name</label>
+            <input
+              type="text"
+              id="voterName"
+              placeholder="Enter your name"
+              required
+              class="w-full border p-3 rounded-lg">
+          </div>
+
+          <div>
+            <label class="block mb-2 font-semibold">Email Address</label>
+            <input
+              type="email"
+              id="voterEmail"
+              placeholder="Enter your email"
+              required
+              class="w-full border p-3 rounded-lg">
+          </div>
+
+          <div>
+            <label class="block mb-2 font-semibold">Choose Candidate</label>
+            <select id="candidateSelect" required class="w-full border p-3 rounded-lg">
+              <option value="">Select Candidate</option>
+              <option value="Lilian">Lilian</option>
+              <option value="Victor">Victor</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="formMessage" class="font-medium"></p>
+
+        <!-- ================================================= -->
+        <!-- BOTTOM ROW: Candidates (left) + Buttons (right)    -->
+        <!-- ================================================= -->
+        <div class="mt-10 grid md:grid-cols-2 gap-6 items-start">
+
+          <!-- BOTTOM LEFT: Candidates -->
+          <section>
+            <h2 class="text-2xl font-bold mb-5">CANDIDATES</h2>
+
+            <div class="grid grid-cols-2 gap-6 bg-red-400 p-4 rounded-xl shadow">
+
+              <!-- Candidate A -->
+              <div class="bg-white p-6 rounded-xl shadow text-center">
+                <div class="w-20 h-20 bg-blue-200 rounded-full mx-auto flex items-center justify-center text-2xl">A</div>
+                <h3 class="text-xl font-bold mt-4">Lilian</h3>
+                <p class="text-gray-600">HOH</p>
+                <p class="mt-2 font-semibold text-blue-700">
+                  Votes: <span id="count-Lilian">0</span>
+                </p>
+              </div>
+
+              <!-- Candidate B -->
+              <div class="bg-white p-6 rounded-xl shadow text-center">
+                <div class="w-20 h-20 bg-green-200 rounded-full mx-auto flex items-center justify-center text-2xl">B</div>
+                <h3 class="text-xl font-bold mt-4">Victor</h3>
+                <p class="text-gray-600">A.HOH</p>
+                <p class="mt-2 font-semibold text-green-700">
+                  Votes: <span id="count-Victor">0</span>
+                </p>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- BOTTOM RIGHT: Action buttons -->
+          <section class="flex flex-col items-center md:items-end justify-start gap-4 h-full">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                class="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-900">
+                Submit Vote
+              </button>
+
+              <button
+                type="button"
+                onclick="showResults()"
+                class="bg-gray-700 text-white px-8 py-3 rounded-lg hover:bg-gray-900">
+                Check Results
+              </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="w-full bg-white p-6 rounded-xl shadow hidden">
+              <h2 class="text-2xl font-bold mb-5">Live Results</h2>
+              <div id="resultsList" class="space-y-3"></div>
+            </div>
+          </section>
+
+        </div>
+      </form>
+    </section>
+
+  </div>
+
+  <script>
+    // Vote counts stored in localStorage so they persist across page reloads
+    const CANDIDATES = ["Victor", "Lilian"];
+    const VOTES_KEY = "voting_system_votes";
+    const VOTED_EMAILS_KEY = "voting_system_voted_emails";
+
+    function loadVotes() {
+      const stored = localStorage.getItem(VOTES_KEY);
+      if (stored) return JSON.parse(stored);
+      const initial = {};
+      CANDIDATES.forEach(c => initial[c] = 0);
+      return initial;
+    }
+
+    function saveVotes(votes) {
+      localStorage.setItem(VOTES_KEY, JSON.stringify(votes));
+    }
+
+    function loadVotedEmails() {
+      const stored = localStorage.getItem(VOTED_EMAILS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function saveVotedEmails(emails) {
+      localStorage.setItem(VOTED_EMAILS_KEY, JSON.stringify(emails));
+    }
+
+    function updateCounters() {
+      const votes = loadVotes();
+      CANDIDATES.forEach(c => {
+        const el = document.getElementById(`count-${c}`);
+        if (el) el.textContent = votes[c];
+      });
+    }
+
+    // Voter form submission (name + email + candidate select)
+    function handleSubmit(event) {
+      event.preventDefault();
+
+      const name = document.getElementById("voterName").value.trim();
+      const email = document.getElementById("voterEmail").value.trim().toLowerCase();
+      const candidate = document.getElementById("candidateSelect").value;
+      const message = document.getElementById("formMessage");
+
+      if (!name || !email || !candidate) {
+        message.textContent = "Please fill in all fields and select a candidate.";
+        message.className = "font-medium text-red-600";
+        return;
+      }
+
+      const votedEmails = loadVotedEmails();
+      if (votedEmails.includes(email)) {
+        message.textContent = "This email has already voted.";
+        message.className = "font-medium text-red-600";
+        return;
+      }
+
+      // Record the vote
+      const votes = loadVotes();
+      votes[candidate] = (votes[candidate] || 0) + 1;
+      saveVotes(votes);
+
+      votedEmails.push(email);
+      saveVotedEmails(votedEmails);
+
+      updateCounters();
+
+      message.textContent = `Thank you, ${name}! Your vote for ${candidate} has been recorded.`;
+      message.className = "font-medium text-green-600";
+
+      document.getElementById("voteForm").reset();
+    }
+
+    function showResults() {
+      const votes = loadVotes();
+      const totalVotes = Object.values(votes).reduce((sum, v) => sum + v, 0);
+      const resultsList = document.getElementById("resultsList");
+      resultsList.innerHTML = "";
+
+      CANDIDATES.forEach(candidate => {
+        const count = votes[candidate] || 0;
+        const percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+
+        const row = document.createElement("div");
+        row.innerHTML = `
+          <div class="flex justify-between mb-1">
+            <span class="font-semibold">${candidate}</span>
+            <span>${count} votes (${percent}%)</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-blue-600 h-3 rounded-full" style="width: ${percent}%"></div>
+          </div>
+        `;
+        resultsList.appendChild(row);
+      });
+
+      document.getElementById("resultsSection").classList.remove("hidden");
+      document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Initialize counters on page load
+    updateCounters();
+  </script>
+  
+</body>
+</html>
